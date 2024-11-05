@@ -52,7 +52,17 @@ alarm_model.add_cpds(
 
 alarm_infer = VariableElimination(alarm_model)
 
-print(alarm_infer.query(variables=["JohnCalls"],evidence={"Earthquake":"yes"}))
-q = alarm_infer.query(variables=["JohnCalls", "Earthquake"],evidence={"Burglary":"yes","MaryCalls":"yes"}))
-print(q)
+#print(alarm_infer.query(variables=["JohnCalls"],evidence={"Earthquake":"yes"}))
+#q = alarm_infer.query(variables=["JohnCalls", "Earthquake"],evidence={"Burglary":"yes","MaryCalls":"yes"})
+#print(q)
 
+def main():
+    q_mary_calls = alarm_infer.query(variables=["MaryCalls"],evidence={"JohnCalls": "yes"})
+    q_mary_john_calls = alarm_infer.query(variables=["MaryCalls", "JohnCalls"],evidence={"Alarm": "yes"})
+    q_alarm = alarm_infer.query(variables=["Alarm"],evidence={"MaryCalls": "yes"})
+    print(q_mary_calls)
+    print(q_mary_john_calls)
+    print(q_alarm)
+
+if __name__ == "__main__":
+    main()
