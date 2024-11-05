@@ -58,10 +58,10 @@ alarm_infer = VariableElimination(alarm_model)
 
 def main():
     q_mary_calls = alarm_infer.query(variables=["MaryCalls"],evidence={"JohnCalls": "yes"})
-    q_mary_john_calls = alarm_infer.query(variables=["MaryCalls", "JohnCalls"],evidence={"Alarm": "yes"})
-    q_alarm = alarm_infer.query(variables=["Alarm"],evidence={"MaryCalls": "yes"})
     print(q_mary_calls)
+    q_mary_john_calls = alarm_infer.query(variables=["MaryCalls", "JohnCalls"],evidence={"Alarm": "yes"})
     print(q_mary_john_calls)
+    q_alarm = alarm_infer.query(variables=["Alarm"],evidence={"MaryCalls": "yes"})
     print(q_alarm)
 
 if __name__ == "__main__":
