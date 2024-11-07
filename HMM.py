@@ -20,6 +20,17 @@ class Sequence:
     def __len__(self):
         return len(self.outputseq)
 
+def parse_probability_contents(contents):
+    result = {}
+    for line in contents.split('\n'):
+        line = line.split(' ')
+        if len(line) == 3:
+            if line[0] in result:
+                result[line[0]][line[1]] = float(line[2])
+            else:
+                result[line[0]] = {line[1]: float(line[2])}
+    return result
+
 # HMM model
 class HMM:
     def __init__(self, transitions={}, emissions={}):
@@ -27,9 +38,6 @@ class HMM:
         e.g. {'happy': {'silent': '0.2', 'meow': '0.3', 'purr': '0.5'},
               'grumpy': {'silent': '0.5', 'meow': '0.4', 'purr': '0.1'},
               'hungry': {'silent': '0.2', 'meow': '0.6', 'purr': '0.2'}}"""
-
-
-
         self.transitions = transitions
         self.emissions = emissions
 
@@ -38,8 +46,13 @@ class HMM:
         """reads HMM structure from transition (basename.trans),
         and emission (basename.emit) files,
         as well as the probabilities."""
-        pass
-
+        try:
+            with open(basename + ".emit") as f: emissions = f.read()
+            with open(basename + ".trans") as f: transitions = f.read()
+        except FileNotFoundError:
+            print("Error: basename does not correspond to .emit/.trans files")
+        self.emissions = parse_probability_contents(emissions)
+        self.transitions = parse_probability_contents(transitions)
 
    ## you do this.
     def generate(self, n):
