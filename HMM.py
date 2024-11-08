@@ -5,6 +5,7 @@ import argparse
 import codecs
 import os
 import numpy
+import sys
 
 # Sequence - represents a sequence of hidden states and corresponding
 # output variables.
@@ -57,8 +58,19 @@ class HMM:
    ## you do this.
     def generate(self, n):
         """return an n-length Sequence by randomly sampling from this HMM."""
-        pass
-
+        trans_seq = []
+        em_seq = []
+        if n > 0:
+            trans_seq = [numpy.random.choice(list(self.transitions['#'].keys()), p=list(self.transitions['#'].values()))] * n
+            em_seq = [numpy.random.choice(list(self.emissions[trans_seq[0]].keys()), p=list(self.emissions[trans_seq[0]].values()))] * n
+            for i in range(1, n):
+                next_state = trans_seq[i - 1]
+                trans_seq[i] = numpy.random.choice(list(self.transitions[next_state].keys()), p=list(self.transitions[next_state].values()))
+                next_state = trans_seq[i]
+                em_seq[i] = numpy.random.choice(list(self.emissions[next_state].keys()), p=list(self.emissions[next_state].values()))
+        else:
+            print("Warning: You have generated an empty sequence!")
+        return Sequence(trans_seq, em_seq)
     def forward(self, sequence):
         pass
     ## you do this: Implement the Viterbi algorithm. Given a Sequence with a list of emissions,
@@ -74,7 +86,16 @@ class HMM:
     ## You do this. Given a sequence with a list of emissions, fill in the most likely
     ## hidden states using the Viterbi algorithm.
 
+def main():
+    h = HMM()
+    if len(sys.argv) < 2:
+        sys.exit("Usage: python HMM.py file_base [--generate num]")
+    h.load(sys.argv[1])
+    if len(sys.argv) > 3 and sys.argv[2] == '--generate':
+        print(h.generate(int(sys.argv[3])))
 
+if __name__ == "__main__":
+    main()
 
 
 
