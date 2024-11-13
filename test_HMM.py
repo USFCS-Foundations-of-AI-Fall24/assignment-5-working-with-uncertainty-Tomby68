@@ -15,6 +15,13 @@ class MyTestCase(unittest.TestCase):
         seq = h.generate(20)
         print(seq)
 
+    def test_forward(self):
+        h = HMM.HMM()
+        h.load("cat")
+        seq = h.generate(10)
+        last_state = h.forward(seq)
+        print(f"Prediction: {last_state}\nActual: {seq.stateseq[-1]}\n")
+
 
 if __name__ == '__main__':
     unittest.main()

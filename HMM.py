@@ -71,28 +71,77 @@ class HMM:
         else:
             print("Warning: You have generated an empty sequence!")
         return Sequence(trans_seq, em_seq)
+
     def forward(self, sequence):
-        pass
-    ## you do this: Implement the Viterbi algorithm. Given a Sequence with a list of emissions,
-    ## determine the most likely sequence of states.
+
+        matrix = [{} for i in range(len(sequence) + 1)]
+        for key, _ in self.transitions.items():
+            if key != "#":
+                matrix[0][key] = 0.0
+        # Deal with the starting state probability: #
+        if len(sequence) > 0:
+            for state in matrix[0]:
+                matrix[1][state] = self.emissions[state][sequence.outputseq[0]]
+                matrix[1][state] *= self.transitions["#"][state]
+
+        for i in range(1, len(sequence)):
+            obsv = sequence.outputseq[i]
+            for state in matrix[i]:
+                matrix[i+1][state] = 0
+                for state_prob in matrix[i]:
+                    prob = self.emissions[state][obsv] # Emission probability
+                    prob *= self.transitions[state_prob][state] # Multiplied by the transition probability
+                    prob *= matrix[i][state_prob]
+                    matrix[i+1][state] += prob
+        # Finally: Get the state associated with the maximum value in the last dictionary in matrix
+        max_state = ""
+        max_prob = 0
+        for state in matrix[-1]:
+            if matrix[-1][state] > max_prob:
+                max_prob = matrix[-1][state]
+                max_state = state
 
 
-
-
-
+        return state
 
     def viterbi(self, sequence):
         pass
     ## You do this. Given a sequence with a list of emissions, fill in the most likely
     ## hidden states using the Viterbi algorithm.
 
+def parse_obs(obs_file):
+    try:
+        with open(obs_file) as f: observations = f.read()
+    except FileNotFoundError:
+        print(f"Warning: {obs_file} does not exist")
+        observations = []
+    seq = Sequence([], observations)
+    return seq
+
 def main():
     h = HMM()
-    if len(sys.argv) < 2:
-        sys.exit("Usage: python HMM.py file_base [--generate num]")
-    h.load(sys.argv[1])
-    if len(sys.argv) > 3 and sys.argv[2] == '--generate':
-        print(h.generate(int(sys.argv[3])))
+    parse = argparse.ArgumentParser()
+    parse.add_argument("file", help=".trans and .emit base name")
+    parse.add_argument("--generate", help="--generate number")
+    parse.add_argument("--forward", help="--forward .obs_file_name")
+    args = parse.parse_args()
+    h.load(args.file)
+    if args.generate:
+        print(h.generate(int(args.generate)))
+    if args.forward:
+        print(h.forward(parse_obs(args.forward)))
+    #if len(sys.argv) < 2:
+    #    sys.exit("Usage: python HMM.py file_base [--generate num]")
+    #h.load(sys.argv[1])
+    #if len(sys.argv) > 3 and sys.argv[2] == '--generate':
+    #    print(h.generate(int(sys.argv[3])))
+
+def write_obs_files():
+    """
+    Write code to generate length 20 sequences for cat and lander
+    Write those sequences to cat_sequence.obs and lander_sequence.obs
+    :return:
+    """
 
 if __name__ == "__main__":
     main()
