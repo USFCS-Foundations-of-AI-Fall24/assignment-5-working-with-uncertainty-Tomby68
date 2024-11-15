@@ -109,6 +109,16 @@ class HMM:
     ## You do this. Given a sequence with a list of emissions, fill in the most likely
     ## hidden states using the Viterbi algorithm.
 
+    def write_obs_files(self, base):
+        """
+        Write code to generate length 20 sequences for cat and lander
+        Write those sequences to cat_sequence.obs and lander_sequence.obs
+        :return: None
+        """
+        obsv = self.generate(20)
+        with open(base + "_sequence.obs", "w") as f: f.write(obsv.__str__())
+
+
 def parse_obs(obs_file):
     try:
         with open(obs_file) as f: observations = f.read()
@@ -136,15 +146,11 @@ def main():
     #if len(sys.argv) > 3 and sys.argv[2] == '--generate':
     #    print(h.generate(int(sys.argv[3])))
 
-def write_obs_files():
-    """
-    Write code to generate length 20 sequences for cat and lander
-    Write those sequences to cat_sequence.obs and lander_sequence.obs
-    :return:
-    """
-
 if __name__ == "__main__":
-    main()
+    h = HMM()
+    h.load("lander")
+    h.write_obs_files("lander")
+    #main()
 
 
 
