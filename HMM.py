@@ -73,7 +73,6 @@ class HMM:
         return Sequence(trans_seq, em_seq)
 
     def forward(self, sequence):
-
         matrix = [{} for i in range(len(sequence) + 1)]
         for key, _ in self.transitions.items():
             if key != "#":
@@ -81,17 +80,23 @@ class HMM:
         # Deal with the starting state probability: #
         if len(sequence) > 0:
             for state in matrix[0]:
-                matrix[1][state] = self.emissions[state][sequence.outputseq[0]]
-                matrix[1][state] *= self.transitions["#"][state]
+                if state not in self.transitions["#"] or sequence.outputseq[0] not in self.emissions[state]:   # If we can't transition to this state or emit this observation
+                    matrix[1][state] = 0
+                else:
+                    matrix[1][state] = self.emissions[state][sequence.outputseq[0]]
+                    matrix[1][state] *= self.transitions["#"][state]
 
         for i in range(1, len(sequence)):
             obsv = sequence.outputseq[i]
             for state in matrix[i]:
                 matrix[i+1][state] = 0
                 for state_prob in matrix[i]:
-                    prob = self.emissions[state][obsv] # Emission probability
-                    prob *= self.transitions[state_prob][state] # Multiplied by the transition probability
-                    prob *= matrix[i][state_prob]
+                    if state not in self.transitions[state_prob] or obsv not in self.emissions[state]:
+                        prob = 0
+                    else:
+                        prob = self.emissions[state][obsv] # Emission probability
+                        prob *= self.transitions[state_prob][state] # Multiplied by the transition probability
+                        prob *= matrix[i][state_prob]
                     matrix[i+1][state] += prob
         # Finally: Get the state associated with the maximum value in the last dictionary in matrix
         max_state = ""
@@ -101,11 +106,47 @@ class HMM:
                 max_prob = matrix[-1][state]
                 max_state = state
 
-
         return state
 
     def viterbi(self, sequence):
-        pass
+        matrix = [{} for i in range(len(sequence) + 1)]
+        for key, _ in self.transitions.items():
+            if key != "#":
+                matrix[0][key] = 0.0
+        # Deal with the starting state probability: #
+        if len(sequence) > 0:
+            for state in matrix[0]:
+                if state not in self.transitions["#"] or sequence.outputseq[0] not in self.emissions[state]:   # If we can't transition to this state or emit this observation
+                    matrix[1][state] = 0
+                else:
+                    matrix[1][state] = self.emissions[state][sequence.outputseq[0]]
+                    matrix[1][state] *= self.transitions["#"][state]
+
+        for i in range(1, len(sequence)):
+            obsv = sequence.outputseq[i]
+            for state in matrix[i]:
+                matrix[i+1][state] = 0
+                for state_prob in matrix[i]:
+                    if state not in self.transitions[state_prob] or obsv not in self.emissions[state]:
+                        prob = 0
+                    else:
+                        prob = self.emissions[state][obsv] # Emission probability
+                        prob *= self.transitions[state_prob][state] # Multiplied by the transition probability
+                        prob *= matrix[i][state_prob]
+                    matrix[i+1][state] += prob
+        likely_states = [""] * len(matrix)
+        index = 0
+        for item in matrix:
+            max_prob = 0
+            max_state = ""
+            for state in item:
+                if item[state] > max_prob:
+                    max_prob = item[state]
+                    max_state = state
+            likely_states[index] = max_state
+            index += 1
+        return likely_states
+        # Deal with the starting state probability: #
     ## You do this. Given a sequence with a list of emissions, fill in the most likely
     ## hidden states using the Viterbi algorithm.
 
@@ -119,14 +160,31 @@ class HMM:
         with open(base + "_sequence.obs", "w") as f: f.write(obsv.__str__())
 
 
-def parse_obs(obs_file):
+def parse_obs(h, obs_file, algo):
     try:
         with open(obs_file) as f: observations = f.read()
     except FileNotFoundError:
         print(f"Warning: {obs_file} does not exist")
         observations = []
-    seq = Sequence([], observations)
-    return seq
+    observations = observations.split('\n')
+    for i in range(1, len(observations), 2):
+        line = observations[i]
+        print("For observations:", line)
+        print("Predicted state: ", end="")
+        if obs_file.startswith("lander"):
+            if algo == "forward":
+                final_spot = h.forward(Sequence(stateseq=[], outputseq=line.split(" ")))
+                if final_spot in ["2,5", "3,4", "4,3", "4,4", "5,5"]:
+                    print("Safe to land!")
+                else:
+                    print("Not safe to land! (", final_spot, ")", sep="")
+            else:
+                print(h.viterbi(Sequence(stateseq=[], outputseq=line.split(" "))))
+        else:
+            if algo == "forward":
+                print(h.forward(Sequence(stateseq=[], outputseq=line.split(" "))))
+            else:
+                print(h.viterbi(Sequence(stateseq=[], outputseq=line.split(" "))))
 
 def main():
     h = HMM()
@@ -134,23 +192,24 @@ def main():
     parse.add_argument("file", help=".trans and .emit base name")
     parse.add_argument("--generate", help="--generate number")
     parse.add_argument("--forward", help="--forward .obs_file_name")
+    parse.add_argument("--viterbi", help="--viterbi .obs_file_name")
     args = parse.parse_args()
     h.load(args.file)
     if args.generate:
         print(h.generate(int(args.generate)))
     if args.forward:
-        print(h.forward(parse_obs(args.forward)))
-    #if len(sys.argv) < 2:
-    #    sys.exit("Usage: python HMM.py file_base [--generate num]")
-    #h.load(sys.argv[1])
-    #if len(sys.argv) > 3 and sys.argv[2] == '--generate':
-    #    print(h.generate(int(sys.argv[3])))
+        if args.forward.startswith("ambiguous"):
+            parse_obs(h, "ambiguous_sents.obs", "forward")
+        else:
+            parse_obs(h, args.forward, "forward")
+    if args.viterbi:
+        if args.viterbi.startswith("ambiguous"):
+            parse_obs(h, "ambiguous_sents.obs", "viterbi")
+        else:
+            parse_obs(h, args.viterbi, "viterbi")
 
 if __name__ == "__main__":
-    h = HMM()
-    h.load("lander")
-    h.write_obs_files("lander")
-    #main()
+    main()
 
 
 
